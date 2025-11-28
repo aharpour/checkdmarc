@@ -20,6 +20,7 @@ from checkdmarc.utils import (
     get_txt_records,
     normalize_domain,
     query_dns,
+    WSP_REGEX,
 )
 
 """Copyright 2019-2025 Sean Whalen
@@ -127,8 +128,13 @@ class _SPFGrammar(Grammar):
     """Defines Pyleri grammar for SPF records"""
 
     version_tag = Regex(SPF_VERSION_TAG_REGEX_STRING)
+    # Require at least one whitespace between mechanisms/modifiers
+    wsp = Regex(WSP_REGEX + "+")
     mechanism = Regex(SPF_MECHANISM_REGEX_STRING, re.IGNORECASE)
-    START = Sequence(version_tag, Repeat(mechanism))
+    # RFC 7208: version section terminated by SP or end-of-record.
+    # Between subsequent terms, a single SP is required.
+    # Allow optional trailing whitespace.
+    START = Sequence(version_tag, Repeat(Sequence(wsp, mechanism)), Regex(WSP_REGEX + "*"))
 
 
 spf_qualifiers = {"": "pass", "?": "neutral", "+": "pass", "-": "fail", "~": "softfail"}
